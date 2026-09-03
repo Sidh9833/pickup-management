@@ -25,7 +25,7 @@ def admin_required(f):
  return w
 BASE_HTML="""<!doctype html><html><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>{{title}} - Pickup Management</title><style>
 *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}.nav{background:#101828;color:#fff;padding:14px 22px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}.brand{font-weight:800;margin-right:auto}.nav a{color:#d0d5dd;text-decoration:none;font-size:14px}.wrap{max-width:1450px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.top h1{margin:0;font-size:25px}.muted{color:#667085;font-size:13px}.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.card,.panel{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:17px}.num{font-size:28px;font-weight:800;margin-top:5px}.panel{margin-top:18px}.form{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid #d0d5dd;border-radius:8px;font:inherit}.field textarea{min-height:72px}.wide{grid-column:span 2}.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}.primary{background:#175cd3;color:#fff}.secondary{background:#eef2f6;color:#344054}.danger{background:#fee4e2;color:#b42318}.filters{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:10px}.tablewrap{overflow:auto;margin-top:14px}.table{width:100%;border-collapse:collapse;min-width:1250px}.table th,.table td{padding:9px;border-bottom:1px solid #eaecf0;text-align:left;font-size:12px}.table th{background:#f9fafb;font-size:11px}.badge{padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}.done,.yes{background:#dcfae6;color:#067647}.pending{background:#fef0c7;color:#b54708}.cancelled,.no{background:#fee4e2;color:#b42318}.flash{padding:10px 12px;background:#ecfdf3;color:#067647;border-radius:8px;margin-bottom:12px}.error{background:#fef3f2;color:#b42318}.login{max-width:420px;margin:12vh auto}.locs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.loc{border:1px solid #e4e7ec;border-radius:9px;padding:12px}.loc strong{display:block;font-size:20px;margin-top:4px}@media(max-width:1050px){.cards{grid-template-columns:repeat(3,1fr)}.form{grid-template-columns:repeat(2,1fr)}.locs{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.wrap{padding:14px}.cards{grid-template-columns:repeat(2,1fr)}.form,.filters{grid-template-columns:1fr}.wide{grid-column:span 1}}
-</style></head><body><div class=nav><div class=brand>Pickup Management</div>{% if session.get('uid') %}<a href='{{url_for("dashboard")}}'>Dashboard</a><a href='{{url_for("new_pickup")}}'>New Pickup</a><a href='{{url_for("pickups")}}'>Pickup List</a>{% if session.get('role')=='admin' %}<a href='{{url_for("users")}}'>Users</a>{% endif %}<a href='{{url_for("logout")}}'>Logout ({{session.get("username")}})</a>{% endif %}</div><div class=wrap>{% with msgs=get_flashed_messages(with_categories=true) %}{% for cat,msg in msgs %}<div class='flash {{ "error" if cat=="error" else "" }}'>{{msg}}</div>{% endfor %}{% endwith %}{{body|safe}}</div></body></html>"""
+</style></head><body><div class=nav><div class=brand>Pickup Management</div>{% if session.get('uid') %}<a href='{{url_for("dashboard")}}'>Dashboard</a><a href='{{url_for("new_pickup")}}'>New Pickup</a><a href='{{url_for("pickups")}}'>Pickup List</a><a href='{{url_for("change_password")}}'>Change Password</a>{% if session.get('role')=='admin' %}<a href='{{url_for("users")}}'>Users</a>{% endif %}<a href='{{url_for("logout")}}'>Logout ({{session.get("username")}})</a>{% endif %}</div><div class=wrap>{% with msgs=get_flashed_messages(with_categories=true) %}{% for cat,msg in msgs %}<div class='flash {{ "error" if cat=="error" else "" }}'>{{msg}}</div>{% endfor %}{% endwith %}{{body|safe}}</div></body></html>"""
 def page(title,body,**ctx): return render_template_string(BASE_HTML,title=title,body=render_template_string(body,**ctx))
 @app.route("/login",methods=["GET","POST"])
 def login():
@@ -33,7 +33,7 @@ def login():
   c=db();u=c.execute("SELECT * FROM users WHERE username=?",(request.form["username"],)).fetchone();c.close()
   if u and check_password_hash(u["password_hash"],request.form["password"]):session.update(uid=u["id"],username=u["username"],role=u["role"]);return redirect(url_for("dashboard"))
   flash("Invalid username or password","error")
- return page("Login","""<div class='login panel'><h1>Pickup Management</h1><p class=muted>Sign in to continue</p><form method=post><div class=field><label>Username</label><input name=username required></div><br><div class=field><label>Password</label><input name=password type=password required></div><br><button class='btn primary'>Login</button></form><p class=muted>Initial admin: admin / admin123</p></div>""")
+ return page("Login","""<div class='login panel'><h1>Pickup Management</h1><p class=muted>Sign in to continue</p><form method=post><div class=field><label>Username</label><input name=username required></div><br><div class=field><label>Password</label><input name=password type=password required></div><br><button class='btn primary'>Login</button></form></div>""")
 @app.route("/logout")
 def logout():session.clear();return redirect(url_for("login"))
 @app.route("/")
@@ -75,6 +75,26 @@ def export_csv():
  out=io.StringIO();w=csv.writer(out);w.writerow(["Sr No.","Date","Location","Pickup Type","Lot No.","No. of Parcels","Pickup By","Booked By","Vehicle Type","Pickup Status","Update in Software","Remarks"])
  for i,r in enumerate(filtered(),1):w.writerow([i]+[r[k] for k in ["date","location","pickup_type","lot_no","parcels","pickup_by","booked_by","vehicle_type","pickup_status","software_update","remarks"]])
  return Response(out.getvalue(),mimetype="text/csv",headers={"Content-Disposition":"attachment; filename=pickup-register.csv"})
+@app.route("/change-password",methods=["GET","POST"])
+@login_required
+def change_password():
+ if request.method=="POST":
+  current=request.form.get("current_password","")
+  new=request.form.get("new_password","")
+  confirm=request.form.get("confirm_password","")
+  if len(new)<8:
+   flash("New password must be at least 8 characters","error")
+  elif new!=confirm:
+   flash("New passwords do not match","error")
+  else:
+   c=db();u=c.execute("SELECT * FROM users WHERE id=?",(session["uid"],)).fetchone()
+   if not u or not check_password_hash(u["password_hash"],current):
+    c.close();flash("Current password is incorrect","error")
+   else:
+    c.execute("UPDATE users SET password_hash=? WHERE id=?",(generate_password_hash(new),session["uid"]))
+    c.commit();c.close();flash("Password changed successfully")
+    return redirect(url_for("dashboard"))
+ return page("Change Password","""<div class=top><div><h1>Change Password</h1><div class=muted>Update the password for {{session.get("username")}}</div></div></div><div class=panel style="max-width:650px"><form method=post><div class=field><label>Current Password</label><input name=current_password type=password required></div><br><div class=field><label>New Password</label><input name=new_password type=password minlength=8 required></div><br><div class=field><label>Confirm New Password</label><input name=confirm_password type=password minlength=8 required></div><br><button class="btn primary">Change Password</button></form></div>""")
 @app.route("/users")
 @login_required
 @admin_required
